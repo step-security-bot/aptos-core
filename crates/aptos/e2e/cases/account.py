@@ -103,11 +103,11 @@ def test_account_resource_account(run_helper: RunHelper, test_name=None):
     )
 
     result = json.loads(result.stdout)
-    sender = result["Result"]["sender"]
-    resource_account_address = result["Result"]["resource_account"]
+    sender = result["Result"].get("sender")
+    resource_account_address = result["Result"].get("resource_account")
 
     if resource_account_address == None or sender == None:
-        raise TestError("resource account creation failed")
+        raise TestError("Resource account creation failed")
 
     # Derive the resource account
     result = run_helper.run_command(
@@ -126,4 +126,32 @@ def test_account_resource_account(run_helper: RunHelper, test_name=None):
     if resource_account_address not in result.stdout:
         raise TestError(
             f"derive-resource-account-address result does not match expected: {resource_account_address}"
+        )
+
+    # List the resource account
+    result = run_helper.run_command(
+        test_name,
+        [
+            "aptos",
+            "account",
+            "list",
+            "--query=resources",
+        ],
+    )
+
+    json_result = json.loads(result.stdout)
+    found_resource = False
+
+    # Check if the resource account is in the list
+    for module in json_result["Result"]:
+        if module.get("0x1::resource_account::Container") != None:
+            data = module["0x1::resource_account::Container"]["store"]["data"]
+            for resource in data:
+                if resource.get("key") == f"0x{resource_account_address}":
+                    found_resource = True
+                    break
+
+    if not found_resource:
+        raise TestError(
+            "Cannot find the resource account in the account list after resource account creation"
         )
