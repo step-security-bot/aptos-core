@@ -51,6 +51,7 @@ use dashmap::DashMap;
 use itertools::zip_eq;
 use move_core_types::move_resource::MoveStructType;
 use std::{borrow::Borrow, collections::HashMap, mem::swap, sync::Arc};
+use aptos_logger::info;
 
 /// Alternate implementation of [crate::state_store::buffered_state::BufferedState] for use with consensus-only-perf-test feature.
 /// It stores the [StateDelta]s in memory similar to [crate::state_store::buffered_state::BufferedState] except that it does not
@@ -267,7 +268,7 @@ impl FakeAptosDB {
                 let mut buffered_state = self.buffered_state.lock();
                 ensure!(
                     base_state_version == buffered_state.state_after_checkpoint.base_version,
-                    "base_state_version {:?} does not equal to the base_version {:?} in buffered state with current version {:?}",
+                    "bowu base_state_version {:?} does not equal to the base_version {:?} in buffered state with current version {:?}",
                     base_state_version,
                     buffered_state.state_after_checkpoint.base_version,
                     buffered_state.state_after_checkpoint.current_version,
