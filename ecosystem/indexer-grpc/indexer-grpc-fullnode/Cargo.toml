@@ -14,6 +14,12 @@ rust-version = { workspace = true }
 
 [dependencies]
 anyhow = { workspace = true }
+aptos-bitvec = { workspace = true }
+aptos-config = { workspace = true }
+aptos-logger = { workspace = true }
+aptos-mempool = { workspace = true }
+aptos-metrics-core = { workspace = true }
+aptos-moving-average = { workspace = true }
 base64 = { workspace = true }
 bytes = { workspace = true }
 chrono = { workspace = true }
@@ -28,14 +34,9 @@ tokio = { workspace = true }
 tokio-stream = { workspace = true }
 tonic = { workspace = true }
 
-aptos-api = { workspace = true }
-aptos-api-types = { workspace = true }
-aptos-bitvec = { workspace = true }
-aptos-config = { workspace = true }
-aptos-logger = { workspace = true }
-aptos-mempool = { workspace = true }
-aptos-metrics-core = { workspace = true }
-aptos-moving-average = { workspace = true }
+aptos-node-api-context = { workspace = true }
+aptos-node-api-v1-core = { workspace = true }
+aptos-node-api-v1-types = { workspace = true }
 aptos-protos = { workspace = true }
 aptos-runtimes = { workspace = true }
 aptos-storage-interface = { workspace = true }
@@ -47,11 +48,6 @@ move-core-types = { workspace = true }
 move-package = { workspace = true }
 
 [dev-dependencies]
-goldenfile = { workspace = true }
-rand = { workspace = true }
-regex = { workspace = true }
-
-aptos-api-test-context = { workspace = true }
 aptos-crypto = { workspace = true }
 aptos-db = { workspace = true }
 aptos-executor = { workspace = true }
@@ -61,6 +57,11 @@ aptos-genesis = { workspace = true }
 aptos-global-constants = { workspace = true }
 aptos-mempool = { workspace = true }
 aptos-mempool-notifications = { workspace = true }
+goldenfile = { workspace = true }
+rand = { workspace = true }
+regex = { workspace = true }
+
+aptos-node-api-test-context = { workspace = true }
 aptos-proptest-helpers = { workspace = true }
 aptos-sdk = { workspace = true }
 aptos-secure-storage = { workspace = true }

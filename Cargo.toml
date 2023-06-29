@@ -2,10 +2,6 @@
 resolver = "2"
 
 members = [
-    "api",
-    "api/openapi-spec-generator",
-    "api/test-context",
-    "api/types",
     "aptos-move/aptos-aggregator",
     "aptos-move/aptos-debugger",
     "aptos-move/aptos-gas",
@@ -60,6 +56,12 @@ members = [
     "crates/aptos-logger",
     "crates/aptos-metrics-core",
     "crates/aptos-network-checker",
+    "crates/aptos-node-api/context",
+    "crates/aptos-node-api/entrypoint",
+    "crates/aptos-node-api/test-context",
+    "crates/aptos-node-api/v1/core",
+    "crates/aptos-node-api/v1/openapi-spec-generator",
+    "crates/aptos-node-api/v1/types",
     "crates/aptos-node-identity",
     "crates/aptos-openapi",
     "crates/aptos-proptest-helpers",
@@ -249,9 +251,12 @@ rust-version = "1.70"
 aptos = { path = "crates/aptos" }
 aptos-accumulator = { path = "storage/accumulator" }
 aptos-aggregator = { path = "aptos-move/aptos-aggregator" }
-aptos-api = { path = "api" }
-aptos-api-test-context = { path = "api/test-context" }
-aptos-api-types = { path = "api/types" }
+aptos-node-api-context = { path = "crates/aptos-node-api/context" }
+aptos-node-api-entrypoint = { path = "crates/aptos-node-api/entrypoint" }
+aptos-node-api-v1-core = { path = "crates/aptos-node-api/v1/core" }
+aptos-node-api-v1-types = { path = "crates/aptos-node-api/v1/types" }
+aptos-node-api-v1-spec-generator = { path = "crates/aptos-node-api/v1/types" }
+aptos-node-api-test-context = { path = "crates/aptos-node-api/test-context" }
 aptos-backup-cli = { path = "storage/backup/backup-cli" }
 aptos-backup-service = { path = "storage/backup/backup-service" }
 aptos-bounded-executor = { path = "crates/bounded-executor" }
@@ -402,7 +407,7 @@ assert_approx_eq = "1.1.0"
 assert_unordered = "0.1.1"
 async-stream = "0.3"
 async-trait = "0.1.53"
-axum = "0.5.16"
+axum = "0.6.11"
 base64 = "0.13.0"
 backoff = { version = "0.4.0", features = ["tokio"] }
 backtrace = "0.3.58"
@@ -523,8 +528,9 @@ prometheus-http-query = "0.5.2"
 prometheus-parse = "0.2.4"
 proptest = "1.0.0"
 proptest-derive = "0.3.0"
-prost = "0.11.3"
-prost-types = "0.10.1"
+prost = "0.11.8"
+prost-types = "0.11.8"
+reverse-proxy-service = "0.1.2"
 quanta = "0.10.1"
 quote = "1.0.18"
 rand = "0.7.3"
