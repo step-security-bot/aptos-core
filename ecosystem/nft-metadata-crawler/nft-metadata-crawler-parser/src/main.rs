@@ -10,7 +10,7 @@ use hyper::{
     service::{make_service_fn, service_fn},
     Body, Request, Response, Server,
 };
-use nft_metadata_crawler::{
+use nft_metadata_crawler_parser::{
     db::upsert_entry,
     establish_connection,
     models::{NFTMetadataCrawlerEntry, NFTMetadataCrawlerURIs},
@@ -81,7 +81,7 @@ fn spawn_parser(uri: NFTMetadataCrawlerEntry) -> JoinHandle<()> {
 
 #[tokio::main]
 async fn main() {
-    use nft_metadata_crawler::schema::nft_metadata_crawler_uris::dsl::*;
+    use nft_metadata_crawler_parser::schema::nft_metadata_crawler_uris::dsl::*;
 
     let addr = ([0, 0, 0, 0], 8080).into();
     let make_svc = make_service_fn(|_socket: &AddrStream| async move {

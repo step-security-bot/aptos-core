@@ -1,5 +1,5 @@
 // Copyright © Aptos Foundation
 
 fn main() {
-    println!("URI Retriever");
+    println!("Hello, world!");
 }

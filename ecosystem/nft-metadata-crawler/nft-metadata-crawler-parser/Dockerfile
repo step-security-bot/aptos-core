@@ -16,13 +16,13 @@ USER root
 ENV DATABASE_URL=postgres://docker:docker@localhost:5432/postgres
 
 # Copy your application code to the container
-WORKDIR /nft-metadata-crawler
+WORKDIR /nft-metadata-crawler-parser
 COPY . .
 COPY Cargo.docker.toml Cargo.toml
 
 # Build the application
-RUN cargo install --path /nft-metadata-crawler
+RUN cargo install --path /nft-metadata-crawler-parser
 RUN cargo install diesel_cli --no-default-features --features postgres
 
 # The command to run when the container starts
-CMD service postgresql start && bash -c "diesel setup" && cargo run --bin nft-metadata-crawler
+CMD service postgresql start && bash -c "diesel setup" && cargo run --bin nft-metadata-crawler-parser

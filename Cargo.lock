@@ -9228,7 +9228,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
-name = "nft-metadata-crawler"
+name = "nft-metadata-crawler-parser"
 version = "0.1.0"
 dependencies = [
  "chrono",
@@ -9242,6 +9242,10 @@ dependencies = [
  "serde_json",
  "tokio",
 ]
+
+[[package]]
+name = "nft-metadata-crawler-uri-retriever"
+version = "0.1.0"
 
 [[package]]
 name = "no-std-compat"

@@ -1,5 +1,5 @@
 [package]
-name = "nft-metadata-crawler"
+name = "nft-metadata-crawler-parser"
 version = "0.1.0"
 edition = "2021"
 
