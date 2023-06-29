@@ -9235,6 +9235,7 @@ dependencies = [
  "csv",
  "diesel",
  "futures",
+ "hyper",
  "image",
  "reqwest",
  "serde 1.0.164",
