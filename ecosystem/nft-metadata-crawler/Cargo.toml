@@ -10,6 +10,7 @@ chrono = { workspace = true }
 csv = { workspace = true }
 diesel = { workspace = true }
 futures = { workspace = true }
+hyper = { workspace = true }
 image = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }

@@ -1,12 +1,20 @@
 // Copyright © Aptos Foundation
 
-use std::{fs::File, io::BufReader};
+use std::{convert::Infallible, fs::File, io::BufReader};
 
 use ::futures::future;
 use chrono::{NaiveDateTime, Utc};
-use diesel::PgConnection;
+use diesel::{PgConnection, QueryDsl, RunQueryDsl, SelectableHelper};
+use hyper::{
+    server::conn::AddrStream,
+    service::{make_service_fn, service_fn},
+    Body, Request, Response, Server,
+};
 use nft_metadata_crawler::{
-    db::upsert_entry, establish_connection, models::NFTMetadataCrawlerEntry, parser::Parser,
+    db::upsert_entry,
+    establish_connection,
+    models::{NFTMetadataCrawlerEntry, NFTMetadataCrawlerURIs},
+    parser::Parser,
 };
 use serde::Deserialize;
 use tokio::task::JoinHandle;
@@ -17,14 +25,6 @@ pub struct URIEntry {
     token_uri: String,
     last_transaction_version: String,
     last_transaction_timestamp: String,
-}
-
-#[tokio::main]
-async fn main() {
-    let conn = &mut establish_connection();
-    if let Err(_) = process_file(conn).await {
-        println!("Error opening file");
-    }
 }
 
 async fn process_file(conn: &mut PgConnection) -> std::io::Result<()> {
@@ -77,4 +77,39 @@ fn spawn_parser(uri: NFTMetadataCrawlerEntry) -> JoinHandle<()> {
             Err(_) => println!("Error parsing {}", parser.entry.token_uri),
         }
     })
+}
+
+#[tokio::main]
+async fn main() {
+    use nft_metadata_crawler::schema::nft_metadata_crawler_uris::dsl::*;
+
+    let addr = ([0, 0, 0, 0], 8080).into();
+    let make_svc = make_service_fn(|_socket: &AddrStream| async move {
+        Ok::<_, Infallible>(service_fn(move |_: Request<Body>| async move {
+            let conn = &mut establish_connection();
+            if let Err(_) = process_file(conn).await {
+                println!("Error opening file");
+            }
+
+            let results = nft_metadata_crawler_uris
+                .select(NFTMetadataCrawlerURIs::as_select())
+                .load(conn)
+                .expect("Error loading entries");
+
+            Ok::<_, Infallible>(Response::new(Body::from(
+                results
+                    .iter()
+                    .filter_map(|struct_item| struct_item.raw_image_uri.clone())
+                    .collect::<Vec<String>>()
+                    .join(","),
+            )))
+        }))
+    });
+
+    let server = Server::bind(&addr).serve(make_svc);
+
+    println!("Listening on http://{}", addr);
+    if let Err(e) = server.await {
+        eprintln!("server error: {}", e);
+    }
 }

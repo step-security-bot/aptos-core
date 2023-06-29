@@ -15,11 +15,6 @@ RUN service postgresql start &&\
 USER root
 ENV DATABASE_URL=postgres://docker:docker@localhost:5432/postgres
 
-# Install IPFS
-RUN wget https://dist.ipfs.io/go-ipfs/v0.9.0/go-ipfs_v0.9.0_linux-amd64.tar.gz && \
-    tar xvfz go-ipfs_v0.9.0_linux-amd64.tar.gz && \
-    mv go-ipfs/ipfs /usr/local/bin/ipfs
-
 # Copy your application code to the container
 WORKDIR /nft-metadata-crawler
 COPY . .
@@ -30,4 +25,4 @@ RUN cargo install --path /nft-metadata-crawler
 RUN cargo install diesel_cli --no-default-features --features postgres
 
 # The command to run when the container starts
-CMD service postgresql start && bash -c "diesel setup" && ipfs daemon & cargo run --bin nft-metadata-crawler
+CMD service postgresql start && bash -c "diesel setup" && cargo run --bin nft-metadata-crawler
