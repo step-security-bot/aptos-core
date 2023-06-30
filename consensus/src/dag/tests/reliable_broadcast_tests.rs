@@ -6,8 +6,10 @@ use crate::{
         dag_network::DAGNetworkSender,
         dag_store::Dag,
         reliable_broadcast::{
-            BroadcastStatus, NodeBroadcastHandleError, NodeBroadcastHandler, ReliableBroadcast,
+            BroadcastStatus, CertifiedNodeHandleError, CertifiedNodeHandler,
+            NodeBroadcastHandleError, NodeBroadcastHandler, ReliableBroadcast,
         },
+        tests::helpers::{new_certified_node, new_node},
         types::{DAGMessage, Node, NodeCertificate, NodeDigestSignature, TestAck, TestMessage},
         RpcHandler,
     },
@@ -21,7 +23,7 @@ use aptos_types::{
     aggregate_signature::PartialSignatures, validator_verifier::random_validator_verifier,
 };
 use async_trait::async_trait;
-use claims::assert_ok_eq;
+use claims::{assert_err, assert_ok, assert_ok_eq};
 use futures::{
     future::{AbortHandle, Abortable},
     FutureExt,
@@ -268,6 +270,28 @@ async fn test_node_broadcast_receiver_failure() {
     );
 }
 
-fn new_node(round: Round, timestamp: u64, author: Author, parents: Vec<NodeCertificate>) -> Node {
-    Node::new(0, round, author, timestamp, Payload::empty(false), parents)
+#[test]
+fn test_certified_node_receiver() {
+    let (signers, validator_verifier) = random_validator_verifier(4, None, false);
+    let author_to_index = validator_verifier.address_to_validator_index().clone();
+
+    let dag = Arc::new(RwLock::new(Dag::new(author_to_index, 0)));
+
+    let node = new_certified_node(0, signers[0].author(), vec![]);
+
+    let mut rb_receiver = CertifiedNodeHandler::new(dag);
+
+    // expect an ack for a valid message
+    assert_ok!(rb_receiver.process(node.clone()));
+    // expect an err if the same message is sent again
+    assert_eq!(
+        rb_receiver.process(node).unwrap_err().to_string(),
+        CertifiedNodeHandleError::NodeExists.to_string()
+    );
+
+    let node = new_certified_node(1, signers[0].author(), vec![]);
+    assert_eq!(
+        rb_receiver.process(node).unwrap_err().to_string(),
+        CertifiedNodeHandleError::MissingParents.to_string()
+    );
 }

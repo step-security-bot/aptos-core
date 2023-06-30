@@ -3,7 +3,7 @@
 
 use crate::dag::{
     dag_store::Dag,
-    types::{CertifiedNode, Node, NodeCertificate},
+    types::{CertifiedNode, Node, NodeCertificate}, tests::helpers::new_certified_node,
 };
 use aptos_consensus_types::common::{Author, Payload, Round};
 use aptos_types::{
@@ -80,16 +80,4 @@ fn test_dag_insertion_failure() {
     let node = new_certified_node(2, signers[0].author(), vec![]);
     // equivocation node
     assert!(dag.add_node(node).is_err());
-}
-
-fn new_certified_node(
-    round: Round,
-    author: Author,
-    parents: Vec<NodeCertificate>,
-) -> CertifiedNode {
-    let node = Node::new(1, round, author, 0, Payload::empty(false), parents);
-    CertifiedNode::new(
-        node.clone(),
-        NodeCertificate::new(node.metadata().clone(), AggregateSignature::empty()),
-    )
 }
