@@ -4,9 +4,9 @@
 
 use crate::AptosDB;
 use anyhow::{anyhow, format_err, Result};
-use aptos_config::config::NodeConfig;
+use aptos_config::config::{BootstrappingMode, NodeConfig};
 use aptos_crypto::HashValue;
-use aptos_storage_interface::{DbReader, DbReaderWriter, ExecutedTrees, Order};
+use aptos_storage_interface::{DbReader, DbReaderWriter, DbWriter, ExecutedTrees, FastSyncStatus, Order};
 use aptos_types::{
     account_config::NewBlockEvent,
     contract_event::{ContractEvent, EventWithVersion},
@@ -33,28 +33,25 @@ use aptos_types::{
     write_set::WriteSet,
 };
 use move_core_types::account_address::AccountAddress;
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
+use std::sync::{atomic::{AtomicBool, Ordering}, Arc, RwLock};
 
 /// This is a wrapper around [AptosDB] that is used to bootstrap the node for fast sync mode
 /// fast_sync_db is used for accessing genesis data
-pub struct FastSyncAptosDB {
-    // refer to the regular DB
-    inner: Arc<dyn DbReader>,
-    //TODO(bowu): remove this hack when we have a better way to handle fast sync
-    // storing the genesis data
-    fast_sync_db: Option<DbReaderWriter>,
-    fast_sync_finished: Arc<AtomicBool>,
+pub struct FastSyncStorageWrapper {
+    // main is used for normal read/write or genesis data during fast sync
+    db_main: AptosDB,
+
+    // secondary is used for storing fast sync snapshot and all the read/writes afterwards
+    db_secondary: Option<AptosDB>,
+
+    // This is updated during StateSync bootstrapping.
+    fast_sync_status: Arc<RwLock<FastSyncStatus>>,
 }
 
-impl FastSyncAptosDB {
-    pub fn new_fast_sync_aptos_db(db: Arc<dyn DbReader>, config: &NodeConfig) -> Result<Self> {
-        // append temp to the end of the db dir
+impl FastSyncStorageWrapper {
+    pub fn new_fast_sync_aptos_db(config: &NodeConfig) -> Result<Self> {
         let mut db_dir = config.storage.dir();
-        db_dir.push("fast_sync_temp_db");
-        let fast_sync_db = AptosDB::open(
+        let db_main = AptosDB::open(
             db_dir.as_path(),
             false,
             config.storage.storage_pruner_config,
@@ -64,16 +61,36 @@ impl FastSyncAptosDB {
             config.storage.max_num_nodes_per_lru_cache_shard,
         )
         .map_err(|err| anyhow!("fast sync DB failed to open {}", err))?;
+
+        let db_secondary = if config.state_sync.state_sync_driver.bootstrapping_mode
+            == BootstrappingMode::DownloadLatestStates
+        {
+            db_dir.push("fast_sync_temp_db");
+            Some(
+                AptosDB::open(
+                    db_dir.as_path(),
+                    false,
+                    config.storage.storage_pruner_config,
+                    config.storage.rocksdb_configs,
+                    config.storage.enable_indexer,
+                    config.storage.buffered_state_target_items,
+                    config.storage.max_num_nodes_per_lru_cache_shard,
+                )
+                .map_err(|err| anyhow!("fast sync DB failed to open {}", err))?,
+            )
+        } else {
+            None
+        };
+
         Ok(Self {
-            inner: db,
-            fast_sync_db: Some(DbReaderWriter::new(fast_sync_db)),
-            fast_sync_finished: Arc::new(AtomicBool::new(false)),
+            db_main,
+            db_secondary,
+            fast_sync_status: Arc::new(RwLock::new(FastSyncStatus::UNKNOWN)),
         })
     }
 
-    /// Expose the fast sync db for committing genesis data
-    pub fn get_db_reader_writer(&mut self) -> Option<&mut DbReaderWriter> {
-        self.fast_sync_db.as_mut()
+    pub fn get_fast_sync_status(&self) -> Arc<RwLock<FastSyncStatus>> {
+       self.fast_sync_status.clone()
     }
 
     /// Check if the fast sync finished already
@@ -95,7 +112,71 @@ impl FastSyncAptosDB {
     }
 }
 
-impl DbReader for FastSyncAptosDB {
+impl DbWriter for FastSyncStorageWrapper {
+    /// Get a (stateful) state snapshot receiver.
+    ///
+    /// Chunk of accounts need to be added via `add_chunk()` before finishing up with `finish_box()`
+    fn get_state_snapshot_receiver(
+        &self,
+        version: Version,
+        expected_root_hash: HashValue,
+    ) -> Result<Box<dyn StateSnapshotReceiFver<StateKey, StateValue>>> {
+        unimplemented!()
+    }
+
+    /// Finalizes a state snapshot that has already been restored to the database through
+    /// a state snapshot receiver. This is required to bootstrap the transaction accumulator,
+    /// populate transaction information, save the epoch ending ledger infos and delete genesis.
+    ///
+    /// Note: this assumes that the output with proof has already been verified and that the
+    /// state snapshot was restored at the same version.
+    fn finalize_state_snapshot(
+        &self,
+        version: Version,
+        output_with_proof: TransactionOutputListWithProof,
+        ledger_infos: &[LedgerInfoWithSignatures],
+    ) -> Result<()> {
+        unimplemented!()
+    }
+
+    /// Persist transactions. Called by the executor module when either syncing nodes or committing
+    /// blocks during normal operation.
+    /// See [`AptosDB::save_transactions`].
+    ///
+    /// [`AptosDB::save_transactions`]: ../aptosdb/struct.AptosDB.html#method.save_transactions
+    fn save_transactions(
+        &self,
+        txns_to_commit: &[TransactionToCommit],
+        first_version: Version,
+        base_state_version: Option<Version>,
+        ledger_info_with_sigs: Option<&LedgerInfoWithSignatures>,
+        sync_commit: bool,
+        latest_in_memory_state: StateDelta,
+    ) -> Result<()> {
+        unimplemented!()
+    }
+
+    /// Persist transactions for block.
+    /// See [`AptosDB::save_transaction_block`].
+    ///
+    /// [`AptosDB::save_transaction_block`]:
+    /// ../aptosdb/struct.AptosDB.html#method.save_transaction_block
+    fn save_transaction_block(
+        &self,
+        txns_to_commit: &[Arc<TransactionToCommit>],
+        first_version: Version,
+        base_state_version: Option<Version>,
+        ledger_info_with_sigs: Option<&LedgerInfoWithSignatures>,
+        sync_commit: bool,
+        latest_in_memory_state: StateDelta,
+        block_state_updates: ShardedStateUpdates,
+        sharded_state_cache: &ShardedStateCache,
+    ) -> Result<()> {
+        unimplemented!()
+    }
+}
+
+impl DbReader for FastSyncStorageWrapper {
     fn get_epoch_ending_ledger_infos(
         &self,
         start_epoch: u64,

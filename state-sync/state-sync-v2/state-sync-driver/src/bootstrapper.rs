@@ -367,6 +367,9 @@ impl<
     pub async fn bootstrapping_complete(&mut self) -> Result<(), Error> {
         info!(LogSchema::new(LogEntry::Bootstrapper)
             .message("The node has successfully bootstrapped!"));
+        // We don't need to distinguish fast sync vs non-fast sync.
+        // Storage only needs to know if bootstrapping is complete.
+        self.storage_synchronizer.notify_storage_fast_sync_ends()?;
         self.bootstrapped = true;
         self.notify_listeners_if_bootstrapped().await
     }
@@ -464,7 +467,7 @@ impl<
         let highest_known_ledger_version = highest_known_ledger_info.ledger_info().version();
 
         // If we've already synced to the highest known version, there's nothing to do
-        if highest_synced_version >= highest_known_ledger_version {
+        if highest_synced_version >= highest_known_ledger_version && highest_synced_version != 0 {
             info!(LogSchema::new(LogEntry::Bootstrapper)
                 .message(&format!("Highest synced version {} is >= highest known ledger version {}, nothing needs to be done.",
                     highest_synced_version, highest_known_ledger_version)));
@@ -478,6 +481,8 @@ impl<
         // Bootstrap according to the mode
         match self.get_bootstrapping_mode() {
             BootstrappingMode::DownloadLatestStates => {
+                self.storage_synchronizer
+                    .notify_storage_fast_sync_starts()?;
                 self.fetch_missing_state_snapshot_data(
                     highest_synced_version,
                     highest_known_ledger_info,

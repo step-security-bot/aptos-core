@@ -3,6 +3,7 @@
 
 use crate::{
     errors::AptosDbError,
+    fast_sync_aptos_db::FastSyncStorageWrapper,
     gauged_api,
     metrics::{LATEST_CHECKPOINT_VERSION, LEDGER_VERSION, NEXT_BLOCK_EPOCH},
     AptosDB,
@@ -14,6 +15,7 @@ use aptos_crypto::{
     HashValue,
 };
 use aptos_infallible::Mutex;
+use aptos_logger::info;
 use aptos_storage_interface::{
     cached_state_view::ShardedStateCache, state_delta::StateDelta, DbReader, DbWriter,
     ExecutedTrees, MAX_REQUEST_LIMIT,
@@ -51,7 +53,6 @@ use dashmap::DashMap;
 use itertools::zip_eq;
 use move_core_types::move_resource::MoveStructType;
 use std::{borrow::Borrow, collections::HashMap, mem::swap, sync::Arc};
-use aptos_logger::info;
 
 /// Alternate implementation of [crate::state_store::buffered_state::BufferedState] for use with consensus-only-perf-test feature.
 /// It stores the [StateDelta]s in memory similar to [crate::state_store::buffered_state::BufferedState] except that it does not
@@ -136,7 +137,7 @@ impl FakeBufferedState {
 /// features of [AptosDB] while passing through remaining features to the wrapped inner
 /// [AptosDB].
 pub struct FakeAptosDB {
-    inner: AptosDB,
+    inner: FastSyncStorageWrapper,
     // A map of transaction hash to transaction version
     txn_version_by_hash: Arc<DashMap<HashValue, Version>>,
     // A map of transaction version to Transaction
@@ -154,7 +155,7 @@ pub struct FakeAptosDB {
 }
 
 impl FakeAptosDB {
-    pub fn new(db: AptosDB) -> Self {
+    pub fn new(db: FastSyncStorageWrapper) -> Self {
         Self {
             inner: db,
             txn_by_version: Arc::new(DashMap::new()),
@@ -268,7 +269,7 @@ impl FakeAptosDB {
                 let mut buffered_state = self.buffered_state.lock();
                 ensure!(
                     base_state_version == buffered_state.state_after_checkpoint.base_version,
-                    "bowu base_state_version {:?} does not equal to the base_version {:?} in buffered state with current version {:?}",
+                    "base_state_version {:?} does not equal to the base_version {:?} in buffered state with current version {:?}",
                     base_state_version,
                     buffered_state.state_after_checkpoint.base_version,
                     buffered_state.state_after_checkpoint.current_version,

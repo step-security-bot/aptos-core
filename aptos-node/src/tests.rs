@@ -5,13 +5,13 @@ use crate::{create_single_node_test_config, network, start};
 use aptos_config::config::{NodeConfig, WaypointConfig};
 use aptos_event_notifications::EventSubscriptionService;
 use aptos_infallible::RwLock;
+use aptos_logger::info;
 use aptos_storage_interface::{DbReader, DbReaderWriter, DbWriter};
 use aptos_temppath::TempPath;
 use aptos_types::{
     chain_id::ChainId, on_chain_config::ON_CHAIN_CONFIG_REGISTRY, waypoint::Waypoint,
 };
 use std::{fs, sync::Arc};
-use aptos_logger::info;
 
 /// A mock database implementing DbReader and DbWriter
 pub struct MockDatabase;

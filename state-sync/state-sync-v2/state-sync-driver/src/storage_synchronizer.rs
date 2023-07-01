@@ -19,7 +19,7 @@ use aptos_executor_types::{ChunkCommitNotification, ChunkExecutorTrait};
 use aptos_infallible::Mutex;
 use aptos_logger::prelude::*;
 use aptos_mempool_notifications::MempoolNotificationSender;
-use aptos_storage_interface::{DbReader, DbReaderWriter, StateSnapshotReceiver};
+use aptos_storage_interface::{DbReader, DbReaderWriter, FastSyncStatus, StateSnapshotReceiver};
 use aptos_types::{
     ledger_info::LedgerInfoWithSignatures,
     state_store::{
@@ -107,7 +107,13 @@ pub trait StorageSynchronizerInterface {
 
     /// Finish the chunk executor at this round of state sync by releasing
     /// any in-memory resources to prevent memory leak.
-    fn finish_chunk_executor(&self);
+    fn finish_chunk_executor(&self) -> Result<(), Error>;
+
+    /// Inform storage the fast_sync indeed starts
+    fn notify_storage_fast_sync_starts(&mut self) -> Result<(), Error>;
+
+    /// Inform storage the fast_sync indeed ends
+    fn notify_storage_fast_sync_ends(&mut self) -> Result<(), Error>;
 }
 
 /// The implementation of the `StorageSynchronizerInterface` used by state sync
@@ -248,6 +254,18 @@ impl<
             Ok(())
         }
     }
+
+    /// Inform storage the fast_sync indeed starts
+    fn notify_storage_fast_sync_starts(&mut self) -> Result<(), Error> {
+        self.storage.set_fast_sync_status(FastSyncStatus::STARTED);
+        Ok(())
+    }
+
+    /// Inform storage the fast_sync indeed ends
+    fn notify_storage_fast_sync_ends(&mut self) -> Result<(), Error> {
+        self.storage.set_fast_sync_status(FastSyncStatus::FINISHED);
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -354,6 +372,18 @@ impl<
 
     fn finish_chunk_executor(&self) {
         self.chunk_executor.finish()
+    }
+
+    /// Inform storage the fast_sync indeed starts
+    fn notify_storage_fast_sync_starts(&mut self) -> Result<(), Error> {
+        self.storage.set_fast_sync_status(FastSyncStatus::STARTED);
+        Ok(())
+    }
+
+    /// Inform storage the fast_sync indeed ends
+    fn notify_storage_fast_sync_ends(&mut self) -> Result<(), Error> {
+        self.storage.set_fast_sync_status(FastSyncStatus::FINISHED);
+        Ok(())
     }
 }
 
