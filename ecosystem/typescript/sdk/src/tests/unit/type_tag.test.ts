@@ -1,10 +1,12 @@
 import {
+  objectStructTag,
   StructTag,
   TypeTagAddress,
   TypeTagBool,
   TypeTagParser,
   TypeTagParserError,
   TypeTagStruct,
+  TypeTagU8,
 } from "../../aptos_types/type_tag";
 
 const expectedTypeTag = {
@@ -95,6 +97,18 @@ describe("TypeTagParser", () => {
       const parser = new TypeTagParser(typeTag);
       const result = parser.parseTypeTag();
       expect(result instanceof TypeTagAddress).toBeTruthy();
+    });
+
+    test("TypeTagParser successfully parses an Option type", () => {
+      const typeTag = "0x1::option::Option<u8>";
+      const parser = new TypeTagParser(typeTag);
+      const result = parser.parseTypeTag();
+
+      if (result instanceof TypeTagStruct) {
+        expect(result.value === objectStructTag(new TypeTagU8()));
+      } else {
+        fail(`Not an option ${result}`);
+      }
     });
 
     test("TypeTagParser successfully parses a strcut with a nested Object type", () => {
