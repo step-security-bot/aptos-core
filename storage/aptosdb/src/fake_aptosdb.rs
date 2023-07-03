@@ -6,7 +6,6 @@ use crate::{
     fast_sync_aptos_db::FastSyncStorageWrapper,
     gauged_api,
     metrics::{LATEST_CHECKPOINT_VERSION, LEDGER_VERSION, NEXT_BLOCK_EPOCH},
-    AptosDB,
 };
 use anyhow::{ensure, format_err, Result};
 use aptos_accumulator::{HashReader, MerkleAccumulator};
@@ -350,7 +349,9 @@ impl FakeAptosDB {
 
             // Once everything is successfully stored, update the latest in-memory ledger info.
             if let Some(x) = ledger_info_with_sigs {
-                self.inner.ledger_store.set_latest_ledger_info(x.clone());
+                self.inner
+                    .get_ledger_store()
+                    .set_latest_ledger_info(x.clone());
 
                 LEDGER_VERSION.set(x.ledger_info().version() as i64);
                 NEXT_BLOCK_EPOCH.set(x.ledger_info().next_block_epoch() as i64);

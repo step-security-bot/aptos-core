@@ -16,8 +16,8 @@ use aptos_data_streaming_service::{
 };
 use aptos_executor_types::{ChunkCommitNotification, ChunkExecutorTrait};
 use aptos_storage_interface::{
-    state_delta::StateDelta, DbReader, DbReaderWriter, DbWriter, ExecutedTrees, Order,
-    StateSnapshotReceiver,
+    state_delta::StateDelta, DbReader, DbReaderWriter, DbWriter, ExecutedTrees, FastSyncStatus,
+    Order, StateSnapshotReceiver,
 };
 use aptos_types::{
     account_address::AccountAddress,
@@ -42,7 +42,7 @@ use aptos_types::{
 };
 use async_trait::async_trait;
 use mockall::mock;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use tokio::task::JoinHandle;
 
 // TODO(joshlind): if we see these as generally useful, we should
@@ -81,6 +81,7 @@ pub fn create_mock_reader_writer(
     DbReaderWriter {
         reader: Arc::new(reader),
         writer: Arc::new(writer),
+        fast_sync_status: Arc::new(RwLock::new(FastSyncStatus::UNKNOWN)),
     }
 }
 
@@ -453,6 +454,12 @@ mock! {
         fn reset_chunk_executor(&self) -> Result<(), crate::error::Error>;
 
         fn finish_chunk_executor(&self);
+
+            /// Inform storage the fast_sync indeed starts
+    fn notify_storage_fast_sync_starts(&mut self) -> Result<(), Error>;
+
+    /// Inform storage the fast_sync indeed ends
+    fn notify_storage_fast_sync_ends(&mut self) -> Result<(), Error>;
     }
     impl Clone for StorageSynchronizer {
         fn clone(&self) -> Self;

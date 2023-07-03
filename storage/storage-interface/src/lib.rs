@@ -35,10 +35,11 @@ use aptos_types::{
     },
     write_set::WriteSet,
 };
-use std::sync::RwLock;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::Arc};
-use std::ops::{Deref, DerefMut};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 use thiserror::Error;
 
 pub mod async_proof_fetcher;
@@ -640,7 +641,7 @@ pub trait DbWriter: Send + Sync {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FastSyncStatus {
     UNKNOWN,
     STARTED,
@@ -652,7 +653,7 @@ pub struct DbReaderWriter {
     pub reader: Arc<dyn DbReader>,
     pub writer: Arc<dyn DbWriter>,
     // This is updated during StateSync bootstrapping.
-    fast_sync_status: Arc<RwLock<FastSyncStatus>>,
+    pub fast_sync_status: Arc<RwLock<FastSyncStatus>>,
 }
 
 impl DbReaderWriter {
@@ -667,17 +668,6 @@ impl DbReaderWriter {
         }
     }
 
-    pub fn new_with_fast_sync_status<D: 'static + DbReader + DbWriter>(db: Arc<D>, status: Arc<RwLock<FastSyncStatus>>) -> Self {
-        let reader = Arc::clone(&db);
-        let writer = Arc::clone(&db);
-
-        Self {
-            reader,
-            writer,
-            fast_sync_status: status,
-        }
-    }
-
     pub fn from_arc<D: 'static + DbReader + DbWriter>(arc_db: Arc<D>) -> Self {
         let reader = Arc::clone(&arc_db);
         let writer = Arc::clone(&arc_db);
@@ -689,43 +679,50 @@ impl DbReaderWriter {
         }
     }
 
+    pub fn from_arc_with_status<D: 'static + DbReader + DbWriter>(
+        arc_db: Arc<D>,
+        status: Arc<RwLock<FastSyncStatus>>,
+    ) -> Self {
+        let reader = Arc::clone(&arc_db);
+        let writer = Arc::clone(&arc_db);
+
+        Self {
+            reader,
+            writer,
+            fast_sync_status: status,
+        }
+    }
+
     pub fn wrap<D: 'static + DbReader + DbWriter>(db: D) -> (Arc<D>, Self) {
         let arc_db = Arc::new(db);
         (Arc::clone(&arc_db), Self::from_arc(arc_db))
     }
 
-    pub fn wrap_with_status<D: 'static + DbReader + DbWriter>(db: D, status: Arc<RwLock<FastSyncStatus>>) -> (Arc<D>, Self) {
+    pub fn wrap_with_status<D: 'static + DbReader + DbWriter>(
+        db: D,
+        status: Arc<RwLock<FastSyncStatus>>,
+    ) -> (Arc<D>, Self) {
         let arc_db = Arc::new(db);
-        let db_rw = Self::new_with_fast_sync_status(arc_db, status);
-        (Arc::clone(&arc_db), db_rw)
-    }
-
-    pub fn initialize_fast_sync_st(&self, ledger_info: &LedgerInfoWithSignatures) -> Result<()> {
-        self.writer
-            .save_transactions(
-                &[],
-                0,
-                None,
-                Some(ledger_info),
-                true,
-                StateDelta::default(),
-            )
-            .map_err(|e| e.into())
+        (
+            Arc::clone(&arc_db),
+            Self::from_arc_with_status(arc_db, status),
+        )
     }
 
     pub fn update_fast_sync_status(&mut self, status: FastSyncStatus) -> Result<()> {
-        let stat = self
+        let mut stat = self
             .fast_sync_status
-            .write().deref_mut();
+            .write()
+            .expect("Failed to get write lock of fast sync status");
         *stat = status;
         Ok(())
     }
 
     pub fn get_fast_sync_status(&self) -> Result<FastSyncStatus> {
-        let res = self
-            .fast_sync_status
-            .read().deref().clone();
-        Ok(res.clone())
+        self.fast_sync_status
+            .read()
+            .map_err(|e| format_err!("Failed to get fast sync status, error: {:?}", e))
+            .map(|s| *s)
     }
 }
 
