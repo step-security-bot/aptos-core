@@ -1,21 +1,18 @@
 // Copyright © Aptos Foundation
 
-use std::{convert::Infallible, fs::File, io::BufReader};
+use std::{
+    env,
+    io::{self},
+};
 
 use ::futures::future;
 use chrono::{NaiveDateTime, Utc};
-use diesel::{PgConnection, QueryDsl, RunQueryDsl, SelectableHelper};
-use hyper::{
-    server::conn::AddrStream,
-    service::{make_service_fn, service_fn},
-    Body, Request, Response, Server,
-};
+use diesel::PgConnection;
 use nft_metadata_crawler_parser::{
-    db::upsert_entry,
-    establish_connection,
-    models::{NFTMetadataCrawlerEntry, NFTMetadataCrawlerURIs},
-    parser::Parser,
+    db::upsert_entry, establish_connection, models::NFTMetadataCrawlerEntry, parser::Parser,
 };
+use nft_metadata_crawler_utils::consume_from_queue;
+use reqwest::Client;
 use serde::Deserialize;
 use tokio::task::JoinHandle;
 
@@ -27,27 +24,51 @@ pub struct URIEntry {
     last_transaction_timestamp: String,
 }
 
-async fn process_file(conn: &mut PgConnection) -> std::io::Result<()> {
-    let file = File::open("./test.csv")?;
-    let reader = BufReader::new(file);
-    let mut rdr = csv::Reader::from_reader(reader);
+impl URIEntry {
+    fn from_str(s: &str) -> Option<Self> {
+        let parts: Vec<&str> = s.split(',').collect();
+        if parts.len() == 4 {
+            Some(URIEntry {
+                token_data_id: parts[0].to_string(),
+                token_uri: parts[1].to_string(),
+                last_transaction_version: parts[2].to_string(),
+                last_transaction_timestamp: parts[3].to_string(),
+            })
+        } else {
+            None
+        }
+    }
+}
 
-    let uris: Result<Vec<_>, _> = rdr
-        .deserialize::<URIEntry>()
-        .map(|res| process_record(res, conn))
+async fn process_response(res: Vec<String>, conn: &mut PgConnection) -> io::Result<()> {
+    // let mut rdr = ReaderBuilder::new()
+    //     .has_headers(false)
+    //     .from_reader(res.as_bytes());
+
+    // let mut uris = Vec::new();
+    // for result in rdr.deserialize() {
+    //     let record: URIEntry = result?;
+    //     uris.push(process_record(record, conn).await?);
+    // }
+    let entries: Vec<URIEntry> = res
+        .into_iter()
+        .filter_map(|s| URIEntry::from_str(&s))
         .collect();
-    let uris = uris?;
+
+    let mut uris: Vec<NFTMetadataCrawlerEntry> = Vec::new();
+    for entry in entries {
+        uris.push(process_record(entry, conn).await?);
+    }
 
     let handles: Vec<_> = uris.into_iter().map(spawn_parser).collect();
     future::join_all(handles).await;
     Ok(())
 }
 
-fn process_record(
-    res: csv::Result<URIEntry>,
+async fn process_record(
+    record: URIEntry,
     conn: &mut PgConnection,
 ) -> Result<NFTMetadataCrawlerEntry, csv::Error> {
-    let record = res?;
     let last_transaction_version = record
         .last_transaction_version
         .parse()
@@ -57,7 +78,7 @@ fn process_record(
             .expect("Error parsing last_transaction_timestamp");
 
     Ok(upsert_entry(
-        conn,
+        &mut *conn,
         NFTMetadataCrawlerEntry {
             token_data_id: record.token_data_id.clone(),
             token_uri: record.token_uri.clone(),
@@ -81,35 +102,17 @@ fn spawn_parser(uri: NFTMetadataCrawlerEntry) -> JoinHandle<()> {
 
 #[tokio::main]
 async fn main() {
-    use nft_metadata_crawler_parser::schema::nft_metadata_crawler_uris::dsl::*;
+    let mut conn = establish_connection();
+    let client = Client::new();
+    let auth = env::var("AUTH").expect("No AUTH");
+    let subscription_name = env::var("SUBSCRIPTION_NAME").expect("No SUBSCRIPTION NAME");
 
-    let addr = ([0, 0, 0, 0], 8080).into();
-    let make_svc = make_service_fn(|_socket: &AddrStream| async move {
-        Ok::<_, Infallible>(service_fn(move |_: Request<Body>| async move {
-            let conn = &mut establish_connection();
-            if let Err(_) = process_file(conn).await {
-                println!("Error opening file");
-            }
-
-            let results = nft_metadata_crawler_uris
-                .select(NFTMetadataCrawlerURIs::as_select())
-                .load(conn)
-                .expect("Error loading entries");
-
-            Ok::<_, Infallible>(Response::new(Body::from(
-                results
-                    .iter()
-                    .filter_map(|struct_item| struct_item.raw_image_uri.clone())
-                    .collect::<Vec<String>>()
-                    .join(","),
-            )))
-        }))
-    });
-
-    let server = Server::bind(&addr).serve(make_svc);
-
-    println!("Listening on http://{}", addr);
-    if let Err(e) = server.await {
-        eprintln!("server error: {}", e);
+    if let Ok(res) = consume_from_queue(&client, &auth, &subscription_name).await {
+        match process_response(res, &mut conn).await {
+            Ok(_) => println!("Successfully processed response"),
+            Err(e) => println!("Error processing response: {}", e),
+        };
+    } else {
+        println!("Error processing response");
     }
 }

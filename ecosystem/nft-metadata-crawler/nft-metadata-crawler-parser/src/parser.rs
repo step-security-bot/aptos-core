@@ -52,11 +52,11 @@ impl Parser {
                     Ok(_) => println!("Successfully saved JSON"),
                     Err(_) => println!("Error saving JSON, {}", self.entry.token_uri),
                 }
-            }
+            },
             Err(_) => {
                 self.model.json_parser_retry_count += 1;
                 println!("Error parsing {}", self.entry.token_uri)
-            }
+            },
         }
         upsert_uris(conn, self.model.clone());
 
@@ -67,11 +67,11 @@ impl Parser {
                     Ok(_) => println!("Successfully saved image"),
                     Err(_) => println!("Error saving image {}", self.entry.token_uri),
                 }
-            }
+            },
             Err(_) => {
                 self.model.image_resizer_retry_count += 1;
                 println!("Error optimizing image {}", self.entry.token_uri)
-            }
+            },
         }
         upsert_uris(conn, self.model.clone());
         Ok(())
@@ -127,7 +127,7 @@ impl Parser {
                                     FilterType::Gaussian,
                                 )
                                 .into_raw());
-                            }
+                            },
                         }
                     }
                 }
@@ -149,7 +149,7 @@ impl Parser {
                         .to_string()
                 ))?;
                 out.write_all(&new_img)?;
-            }
+            },
             _ => jpeg::JpegEncoder::new(&mut File::create(format!(
                 "./CDN/image_{}.jpg",
                 self.entry.token_data_id

@@ -12,6 +12,7 @@ diesel = { workspace = true }
 futures = { workspace = true }
 hyper = { workspace = true }
 image = { workspace = true }
+nft-metadata-crawler-utils = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

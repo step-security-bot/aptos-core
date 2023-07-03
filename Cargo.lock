@@ -9237,6 +9237,7 @@ dependencies = [
  "futures",
  "hyper",
  "image",
+ "nft-metadata-crawler-utils",
  "reqwest",
  "serde 1.0.164",
  "serde_json",
@@ -9246,6 +9247,26 @@ dependencies = [
 [[package]]
 name = "nft-metadata-crawler-uri-retriever"
 version = "0.1.0"
+dependencies = [
+ "base64 0.13.1",
+ "csv",
+ "hyper",
+ "nft-metadata-crawler-utils",
+ "reqwest",
+ "serde 1.0.164",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "nft-metadata-crawler-utils"
+version = "0.1.0"
+dependencies = [
+ "base64 0.13.1",
+ "reqwest",
+ "serde_json",
+ "tokio",
+]
 
 [[package]]
 name = "no-std-compat"

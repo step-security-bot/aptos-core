@@ -100,6 +100,7 @@ members = [
     "ecosystem/indexer-grpc/indexer-grpc-utils",
     "ecosystem/nft-metadata-crawler/nft-metadata-crawler-uri-retriever",
     "ecosystem/nft-metadata-crawler/nft-metadata-crawler-parser",
+    "ecosystem/nft-metadata-crawler/nft-metadata-crawler-utils",
     "ecosystem/node-checker",
     "ecosystem/node-checker/fn-check-client",
     "execution/block-partitioner",
@@ -502,6 +503,7 @@ mirai-annotations = "1.12.0"
 mockall = "0.11.0"
 more-asserts = "0.3.0"
 native-tls = "0.2.10"
+nft-metadata-crawler-utils = { path = "ecosystem/nft-metadata-crawler/nft-metadata-crawler-utils" }
 ntest = "0.9.0"
 num_cpus = "1.13.1"
 num-derive = "0.3.3"
