@@ -3,6 +3,10 @@
 use std::{error::Error, io::Write};
 
 use chrono::Utc;
+use diesel::{
+    r2d2::{ConnectionManager, PooledConnection},
+    PgConnection,
+};
 use image::{
     codecs::jpeg,
     imageops::{resize, FilterType},
@@ -14,7 +18,6 @@ use serde_json::Value;
 
 use crate::{
     db::upsert_uris,
-    establish_connection,
     models::{NFTMetadataCrawlerEntry, NFTMetadataCrawlerURIs},
 };
 
@@ -43,8 +46,10 @@ impl Parser {
         }
     }
 
-    pub async fn parse(&mut self) -> Result<(), Box<dyn Error>> {
-        let conn = &mut establish_connection();
+    pub async fn parse(
+        &mut self,
+        conn: &mut PooledConnection<ConnectionManager<PgConnection>>,
+    ) -> Result<(), Box<dyn Error>> {
         match self.parse_json().await {
             Ok(json) => {
                 println!("Successfully parsed {}", self.entry.token_uri);

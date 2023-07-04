@@ -2,12 +2,16 @@
 
 use crate::{models::NFTMetadataCrawlerURIs, schema};
 
-use diesel::{upsert::excluded, ExpressionMethods, PgConnection, RunQueryDsl, SelectableHelper};
+use diesel::{
+    r2d2::{ConnectionManager, PooledConnection},
+    upsert::excluded,
+    ExpressionMethods, PgConnection, RunQueryDsl, SelectableHelper,
+};
 
 use crate::models::NFTMetadataCrawlerEntry;
 
 pub fn upsert_entry(
-    conn: &mut PgConnection,
+    conn: &mut PooledConnection<ConnectionManager<PgConnection>>,
     entry: NFTMetadataCrawlerEntry,
 ) -> NFTMetadataCrawlerEntry {
     use schema::nft_metadata_crawler_entry::dsl::*;
@@ -29,7 +33,7 @@ pub fn upsert_entry(
 }
 
 pub fn upsert_uris(
-    conn: &mut PgConnection,
+    conn: &mut PooledConnection<ConnectionManager<PgConnection>>,
     entry: NFTMetadataCrawlerURIs,
 ) -> NFTMetadataCrawlerURIs {
     use schema::nft_metadata_crawler_uris::dsl::*;

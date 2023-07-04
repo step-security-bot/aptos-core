@@ -1,118 +1,71 @@
 // Copyright © Aptos Foundation
 
-use std::{
-    env,
-    io::{self},
-};
+use std::{env, error::Error};
 
 use ::futures::future;
-use chrono::{NaiveDateTime, Utc};
-use diesel::PgConnection;
+use diesel::{
+    r2d2::{ConnectionManager, Pool},
+    PgConnection,
+};
 use nft_metadata_crawler_parser::{
-    db::upsert_entry, establish_connection, models::NFTMetadataCrawlerEntry, parser::Parser,
+    db::upsert_entry, establish_connection_pool, models::NFTMetadataCrawlerEntry, parser::Parser,
 };
 use nft_metadata_crawler_utils::consume_from_queue;
 use reqwest::Client;
-use serde::Deserialize;
 use tokio::task::JoinHandle;
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct URIEntry {
-    token_data_id: String,
-    token_uri: String,
-    last_transaction_version: String,
-    last_transaction_timestamp: String,
-}
-
-impl URIEntry {
-    fn from_str(s: &str) -> Option<Self> {
-        let parts: Vec<&str> = s.split(',').collect();
-        if parts.len() == 4 {
-            Some(URIEntry {
-                token_data_id: parts[0].to_string(),
-                token_uri: parts[1].to_string(),
-                last_transaction_version: parts[2].to_string(),
-                last_transaction_timestamp: parts[3].to_string(),
-            })
-        } else {
-            None
-        }
-    }
-}
-
-async fn process_response(res: Vec<String>, conn: &mut PgConnection) -> io::Result<()> {
-    // let mut rdr = ReaderBuilder::new()
-    //     .has_headers(false)
-    //     .from_reader(res.as_bytes());
-
-    // let mut uris = Vec::new();
-    // for result in rdr.deserialize() {
-    //     let record: URIEntry = result?;
-    //     uris.push(process_record(record, conn).await?);
-    // }
-    let entries: Vec<URIEntry> = res
-        .into_iter()
-        .filter_map(|s| URIEntry::from_str(&s))
-        .collect();
-
+async fn process_response(
+    res: Vec<String>,
+    pool: &Pool<ConnectionManager<PgConnection>>,
+) -> Result<Vec<NFTMetadataCrawlerEntry>, Box<dyn Error>> {
     let mut uris: Vec<NFTMetadataCrawlerEntry> = Vec::new();
-    for entry in entries {
-        uris.push(process_record(entry, conn).await?);
+    for entry in res {
+        uris.push(upsert_entry(
+            &mut pool.get()?,
+            NFTMetadataCrawlerEntry::new(entry),
+        ));
     }
-
-    let handles: Vec<_> = uris.into_iter().map(spawn_parser).collect();
-    future::join_all(handles).await;
-    Ok(())
+    Ok(uris)
 }
 
-async fn process_record(
-    record: URIEntry,
-    conn: &mut PgConnection,
-) -> Result<NFTMetadataCrawlerEntry, csv::Error> {
-    let last_transaction_version = record
-        .last_transaction_version
-        .parse()
-        .expect("Error parsing last_transaction_version");
-    let last_transaction_timestamp =
-        NaiveDateTime::parse_from_str(&record.last_transaction_timestamp, "%Y-%m-%d %H:%M:%S %Z")
-            .expect("Error parsing last_transaction_timestamp");
-
-    Ok(upsert_entry(
-        &mut *conn,
-        NFTMetadataCrawlerEntry {
-            token_data_id: record.token_data_id.clone(),
-            token_uri: record.token_uri.clone(),
-            retry_count: 0,
-            last_transaction_version,
-            last_transaction_timestamp,
-            last_updated: Utc::now().naive_utc(),
-        },
-    ))
-}
-
-fn spawn_parser(uri: NFTMetadataCrawlerEntry) -> JoinHandle<()> {
-    tokio::spawn(async move {
-        let mut parser = Parser::new(uri, Some((400, 400)));
-        match parser.parse().await {
-            Ok(_) => println!("Successfully parsed {}", parser.entry.token_uri),
-            Err(_) => println!("Error parsing {}", parser.entry.token_uri),
-        }
-    })
+fn spawn_parser(
+    uri: NFTMetadataCrawlerEntry,
+    pool: &Pool<ConnectionManager<PgConnection>>,
+) -> JoinHandle<()> {
+    match pool.get() {
+        Ok(mut conn) => tokio::spawn(async move {
+            let mut parser = Parser::new(uri, Some((400, 400)));
+            match parser.parse(&mut conn).await {
+                Ok(_) => println!("Successfully parsed {}", parser.entry.token_uri),
+                Err(_) => println!("Error parsing {}", parser.entry.token_uri),
+            }
+        }),
+        Err(_) => todo!(),
+    }
 }
 
 #[tokio::main]
 async fn main() {
-    let mut conn = establish_connection();
+    let pool = establish_connection_pool();
     let client = Client::new();
     let auth = env::var("AUTH").expect("No AUTH");
     let subscription_name = env::var("SUBSCRIPTION_NAME").expect("No SUBSCRIPTION NAME");
 
-    if let Ok(res) = consume_from_queue(&client, &auth, &subscription_name).await {
-        match process_response(res, &mut conn).await {
-            Ok(_) => println!("Successfully processed response"),
-            Err(e) => println!("Error processing response: {}", e),
-        };
-    } else {
-        println!("Error processing response");
+    match consume_from_queue(&client, &auth, &subscription_name).await {
+        Ok(res) => {
+            match process_response(res, &pool).await {
+                Ok(uris) => {
+                    let handles: Vec<_> = uris
+                        .into_iter()
+                        .map(|uri| spawn_parser(uri, &pool))
+                        .collect();
+                    if let Ok(_) = future::try_join_all(handles).await {
+                        println!("SUCCESS");
+                    }
+                },
+                Err(e) => println!("Error processing response: {}", e),
+            };
+        },
+        Err(e) => println!("Error consuming from queue: {}", e),
     }
 }

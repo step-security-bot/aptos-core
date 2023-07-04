@@ -27,6 +27,7 @@ async fn main() {
         Ok::<_, Infallible>(service_fn(move |req: Request<Body>| async move {
             let client = Client::new();
             let auth = env::var("AUTH").expect("No AUTH");
+            let topic_name = env::var("TOPIC_NAME").expect("No TOPIC_NAME");
             let mut parts = req.uri().path().trim_start_matches('/').split('/');
             let start = parts.next();
             let end = parts.next();
@@ -36,14 +37,18 @@ async fn main() {
                     if let (Ok(start_num), Ok(end_num)) = (start.parse::<i32>(), end.parse::<i32>())
                     {
                         if let Ok(links) = process_file() {
-                            let topic_name = env::var("TOPIC_NAME").expect("No TOPIC_NAME");
                             let mut successes = Vec::new();
                             for link in links {
-                                if let Ok(link) =
-                                    publish_to_queue(&client, link.to_string(), &auth, &topic_name)
-                                        .await
+                                match publish_to_queue(
+                                    &client,
+                                    link.to_string(),
+                                    &auth,
+                                    &topic_name,
+                                )
+                                .await
                                 {
-                                    successes.push(link);
+                                    Ok(link) => successes.push(link),
+                                    Err(e) => println!("Error publishing to queue: {}", e),
                                 }
                             }
                             Ok::<_, Infallible>(Response::new(Body::from(format!(
