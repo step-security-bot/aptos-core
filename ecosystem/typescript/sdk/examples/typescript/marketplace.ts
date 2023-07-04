@@ -40,7 +40,7 @@ export class Marketplace {
   }
 
   // Coin listing operations
-  async buildInitFixedPriceListing(
+  async initFixedPriceListing(
     object: MaybeHexString,
     feeSchedule: MaybeHexString,
     startTime: bigint,
@@ -113,6 +113,7 @@ export class Marketplace {
     tokenCreator: MaybeHexString,
     tokenCollection: string,
     tokenName: string,
+    tokenPropertyVersion: bigint,
     feeSchedule: MaybeHexString,
     startTime: bigint,
     startingBid: bigint,
@@ -130,6 +131,7 @@ export class Marketplace {
         HexString.ensure(tokenCreator).hex(),
         tokenCollection,
         tokenName,
+        tokenPropertyVersion.toString(10),
         HexString.ensure(feeSchedule).hex(),
         startTime.toString(10),
         startingBid.toString(10),
@@ -260,7 +262,7 @@ export class Marketplace {
   ): Promise<TransactionPayload> {
     return this.buildTransactionPayload(
       FEE_SCHEDULE,
-      "init",
+      "init_entry",
       [],
       [
         HexString.ensure(feeAddress).hex(),
@@ -370,7 +372,7 @@ export class Marketplace {
   buildTransactionPayload(module: string, func: string, type: string[], args: any[]): TransactionPayload {
     return {
       type: "entry_function_payload",
-      function: func,
+      function: `${this.code_location}::${module}::${func}`,
       type_arguments: type,
       arguments: args,
     };
