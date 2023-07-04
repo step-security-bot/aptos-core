@@ -14,7 +14,7 @@ use crate::{
     state_store::ShardedStateUpdates,
     transaction::authenticator::{AccountAuthenticator, TransactionAuthenticator},
     vm_status::{DiscardedVMStatus, KeptVMStatus, StatusCode, StatusType, VMStatus},
-    write_set::WriteSet,
+    write_set::WriteSet, dkg_transaction::DKGTransaction,
 };
 use anyhow::{ensure, format_err, Context, Error, Result};
 use aptos_crypto::{
@@ -1606,6 +1606,9 @@ pub enum Transaction {
     /// in the TransactionInfo
     /// The hash value inside is unique block id which can generate unique hash of state checkpoint transaction
     StateCheckpoint(HashValue),
+
+    /// Transaction to setup the threshold signature keys for the validators of the next epoch.
+    DKGTransaction(DKGTransaction),
 }
 
 impl Transaction {
@@ -1634,6 +1637,8 @@ impl Transaction {
             Transaction::BlockMetadata(_block_metadata) => String::from("block_metadata"),
             // TODO: display proper information for client
             Transaction::StateCheckpoint(_) => String::from("state_checkpoint"),
+            // TODO: display proper information for client
+            Transaction::DKGTransaction(_) => String::from("dkg_transaction"),
         }
     }
 }

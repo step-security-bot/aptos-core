@@ -313,6 +313,7 @@ pub fn update_counters_for_processed_chunk(
             Transaction::GenesisTransaction(_) => "genesis",
             Transaction::BlockMetadata(_) => "block_metadata",
             Transaction::StateCheckpoint(_) => "state_checkpoint",
+            Transaction::DKGTransaction(_) => "dkg_transaction",
         };
 
         metrics::APTOS_PROCESSED_TXNS_COUNT

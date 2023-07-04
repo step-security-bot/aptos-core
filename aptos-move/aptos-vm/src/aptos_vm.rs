@@ -41,7 +41,7 @@ use aptos_types::{
         WriteSetPayload,
     },
     vm_status::{AbortLocation, StatusCode, VMStatus},
-    write_set::WriteSet,
+    write_set::WriteSet, dkg_transaction::DKGTransaction,
 };
 use aptos_utils::{aptos_try, return_on_failure};
 use aptos_vm_logging::{log_schema::AdapterLogSchema, speculative_error, speculative_log};
@@ -1353,6 +1353,60 @@ impl AptosVM {
         Ok((VMStatus::Executed, output))
     }
 
+    pub(crate) fn process_dkg_txn(
+        &self,
+        resolver: &impl MoveResolverExt,
+        dkg_txn: DKGTransaction,
+        log_context: &AdapterLogSchema,
+    ) -> Result<(VMStatus, VMOutput), VMStatus> {
+        fail_point!("move_adapter::process_dkg_txn", |_| {
+            Err(VMStatus::error(
+                StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR,
+                None,
+            ))
+        });
+
+        // Process the DKG transaction, including several steps:
+        // 1. First verify the validity of the aggregated PVSS transcript.
+        // 2. Call the DKG move function to
+        // 2.1 Store the aggregated PVSS transcript on chain.
+        // 2.2 Emit epoch change event.
+
+        // dkg todo: verify the validity of the aggregated PVSS transcript
+
+        let mut gas_meter = UnmeteredGasMeter;
+        let mut session =
+            self.0
+                .new_session(resolver, SessionId::dkg_txn(&dkg_txn), true);
+
+        let args = serialize_values(&dkg_txn.get_move_args());
+        session
+            .execute_function_bypass_visibility(
+                &BLOCK_MODULE,
+                DKG,
+                vec![],
+                args,
+                &mut gas_meter,
+            )
+            .map(|_return_vals| ())
+            .or_else(|e| {
+                expect_only_successful_execution(e, DKG.as_str(), log_context)
+            })?;
+        SYSTEM_TRANSACTIONS_EXECUTED.inc();
+
+        let output = get_transaction_output(
+            &mut (),
+            session,
+            FeeStatement::zero(),
+            ExecutionStatus::Success,
+            &self
+                .0
+                .get_storage_gas_parameters(log_context)?
+                .change_set_configs,
+        )?;
+        Ok((VMStatus::Executed, output))
+    }
+
     /// Executes a SignedTransaction without performing signature verification.
     pub fn simulate_signed_transaction(
         txn: &SignedTransaction,
@@ -1776,6 +1830,12 @@ impl VMAdapter for AptosVM {
                 let output = VMOutput::empty_with_status(status);
                 (VMStatus::Executed, output, Some("state_checkpoint".into()))
             },
+            PreprocessedTransaction::DKGTransaction(dkg_txn) => {
+                fail_point!("aptos_vm::execution::dkg_txn");
+                let (vm_status, output) =
+                    self.process_dkg_txn(resolver, dkg_txn.clone(), log_context)?;
+                (vm_status, output, Some("dkg_txn".to_string()))
+            }
         })
     }
 }

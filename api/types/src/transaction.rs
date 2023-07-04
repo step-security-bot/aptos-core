@@ -15,6 +15,7 @@ use aptos_crypto::{
 use aptos_types::{
     account_address::AccountAddress,
     block_metadata::BlockMetadata,
+    dkg_transaction::DKGTransaction,
     contract_event::{ContractEvent, EventWithVersion},
     transaction::{
         authenticator::{AccountAuthenticator, TransactionAuthenticator, MAX_NUM_OF_SIGS},
@@ -161,6 +162,7 @@ pub enum Transaction {
     GenesisTransaction(GenesisTransaction),
     BlockMetadataTransaction(BlockMetadataTransaction),
     StateCheckpointTransaction(StateCheckpointTransaction),
+    DisKeyGenTransaction(DisKeyGenTransaction),
 }
 
 impl Transaction {
@@ -171,6 +173,7 @@ impl Transaction {
             Transaction::PendingTransaction(_) => 0,
             Transaction::GenesisTransaction(_) => 0,
             Transaction::StateCheckpointTransaction(txn) => txn.timestamp.0,
+            Transaction::DisKeyGenTransaction(txn) => txn.timestamp.0,
         }
     }
 
@@ -181,6 +184,7 @@ impl Transaction {
             Transaction::PendingTransaction(_) => None,
             Transaction::GenesisTransaction(txn) => Some(txn.info.version.into()),
             Transaction::StateCheckpointTransaction(txn) => Some(txn.info.version.into()),
+            Transaction::DisKeyGenTransaction(txn) => Some(txn.info.version.into()),
         }
     }
 
@@ -191,6 +195,7 @@ impl Transaction {
             Transaction::PendingTransaction(_txn) => false,
             Transaction::GenesisTransaction(txn) => txn.info.success,
             Transaction::StateCheckpointTransaction(txn) => txn.info.success,
+            Transaction::DisKeyGenTransaction(txn) => txn.info.success,
         }
     }
 
@@ -205,6 +210,7 @@ impl Transaction {
             Transaction::PendingTransaction(_txn) => "pending".to_owned(),
             Transaction::GenesisTransaction(txn) => txn.info.vm_status.clone(),
             Transaction::StateCheckpointTransaction(txn) => txn.info.vm_status.clone(),
+            Transaction::DisKeyGenTransaction(txn) => txn.info.vm_status.clone(),
         }
     }
 
@@ -215,6 +221,7 @@ impl Transaction {
             Transaction::GenesisTransaction(_) => "genesis_transaction",
             Transaction::BlockMetadataTransaction(_) => "block_metadata_transaction",
             Transaction::StateCheckpointTransaction(_) => "state_checkpoint_transaction",
+            Transaction::DisKeyGenTransaction(_) => "dkg_transaction",
         }
     }
 
@@ -227,6 +234,7 @@ impl Transaction {
             },
             Transaction::GenesisTransaction(txn) => &txn.info,
             Transaction::StateCheckpointTransaction(txn) => &txn.info,
+            Transaction::DisKeyGenTransaction(txn) => &txn.info,
         })
     }
 }
@@ -308,6 +316,17 @@ impl From<(&SignedTransaction, TransactionPayload)> for UserTransactionRequest {
     }
 }
 
+impl From<(&DKGTransaction, TransactionInfo, u64)> for Transaction {
+    fn from((txn, info, timestamp): (&DKGTransaction, TransactionInfo, u64)) -> Self {
+        Transaction::DisKeyGenTransaction(DisKeyGenTransaction {
+            epoch: U64(txn.epoch),
+            timestamp: timestamp.into(),
+            info,
+            dkg_transcript: DisKeyGenTranscript{ dummy_bytes: txn.dkg_transcript.dummy_bytes.clone() },
+        })
+    }
+}
+
 /// Information related to how a transaction affected the state of the blockchain
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Object)]
 pub struct TransactionInfo {
@@ -373,6 +392,33 @@ pub struct StateCheckpointTransaction {
     #[oai(flatten)]
     pub info: TransactionInfo,
     pub timestamp: U64,
+}
+
+/// A DKG transaction
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Object)]
+pub struct DisKeyGenTransaction {
+    #[serde(flatten)]
+    #[oai(flatten)]
+    pub epoch: U64,
+    pub timestamp: U64,
+    pub info: TransactionInfo,
+    // dkg todo: fill in the fields
+    pub dkg_transcript: DisKeyGenTranscript,
+}
+
+/// A wrapper for the DKG transcript
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Object)]
+pub struct DisKeyGenTranscript {
+    // dkg todo: fill in the fields
+    pub dummy_bytes: Vec<u8>,
+}
+
+impl DisKeyGenTranscript {
+    pub fn new() -> Self {
+        Self {
+            dummy_bytes: vec![0],
+        }
+    }
 }
 
 /// A request to submit a transaction

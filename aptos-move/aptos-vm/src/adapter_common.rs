@@ -6,6 +6,7 @@ use crate::move_vm_ext::{MoveResolverExt, SessionExt, SessionId};
 use anyhow::Result;
 use aptos_types::{
     block_metadata::BlockMetadata,
+    dkg_transaction::DKGTransaction,
     transaction::{
         SignatureCheckedTransaction, SignedTransaction, Transaction, TransactionStatus,
         WriteSetPayload,
@@ -87,6 +88,7 @@ pub enum PreprocessedTransaction {
     BlockMetadata(BlockMetadata),
     InvalidSignature,
     StateCheckpoint,
+    DKGTransaction(DKGTransaction),
 }
 
 /// Check the signature (if any) of a transaction. If the signature is OK, the result
@@ -107,6 +109,7 @@ pub(crate) fn preprocess_transaction<A: VMAdapter>(txn: Transaction) -> Preproce
             PreprocessedTransaction::UserTransaction(Box::new(checked_txn))
         },
         Transaction::StateCheckpoint(_) => PreprocessedTransaction::StateCheckpoint,
+        Transaction::DKGTransaction(dkg_txn) => PreprocessedTransaction::DKGTransaction(dkg_txn),
     }
 }
 

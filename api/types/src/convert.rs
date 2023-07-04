@@ -151,6 +151,9 @@ impl<'a, R: MoveResolverExt + ?Sized> MoveConverter<'a, R> {
                     timestamp: timestamp.into(),
                 })
             },
+            DKGTransaction(txn) => {
+                (&txn, info, timestamp).into()
+            },
         })
     }
 

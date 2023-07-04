@@ -157,7 +157,7 @@ impl InMemoryStateCalculator {
             Ok((updated_state_kvs, Some(self.make_checkpoint()?)))
         } else {
             match txn {
-                Transaction::BlockMetadata(_) | Transaction::UserTransaction(_) => {
+                Transaction::BlockMetadata(_) | Transaction::UserTransaction(_) | Transaction::DKGTransaction(_) => {
                     Ok((updated_state_kvs, None))
                 },
                 Transaction::GenesisTransaction(_) | Transaction::StateCheckpoint(_) => {
@@ -332,7 +332,7 @@ fn ensure_txn_valid_for_vacant_entry(transaction: &Transaction) -> Result<()> {
     // maybe other writeset transactions).
     match transaction {
         Transaction::GenesisTransaction(_) => (),
-        Transaction::BlockMetadata(_) | Transaction::UserTransaction(_) => {
+        Transaction::BlockMetadata(_) | Transaction::UserTransaction(_) | Transaction::DKGTransaction(_) => {
             bail!("Write set should be a subset of read set.")
         },
         Transaction::StateCheckpoint(_) => {},

@@ -278,6 +278,10 @@ impl IndexerStreamCoordinator {
                             sct.info.block_height = Some(block_height_bcs);
                             sct.info.epoch = Some(epoch_bcs);
                         },
+                        APITransaction::DisKeyGenTransaction(ref mut dkgt) => {
+                            dkgt.info.block_height = Some(block_height_bcs);
+                            dkgt.info.epoch = Some(epoch_bcs);
+                        },
                     };
                     txn
                 }) {

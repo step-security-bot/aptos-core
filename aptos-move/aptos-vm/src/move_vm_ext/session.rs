@@ -22,7 +22,7 @@ use aptos_types::{
     on_chain_config::{CurrentTimeMicroseconds, Features, OnChainConfig},
     state_store::{state_key::StateKey, state_value::StateValueMetadata, table::TableHandle},
     transaction::SignatureCheckedTransaction,
-    write_set::{WriteOp, WriteSetMut},
+    write_set::{WriteOp, WriteSetMut}, dkg_transaction::DKGTransaction,
 };
 use aptos_vm_types::change_set::VMChangeSet;
 use move_binary_format::errors::{Location, PartialVMError, VMResult};
@@ -55,6 +55,9 @@ pub enum SessionId {
         // block id
         id: HashValue,
     },
+    DKGTxn {
+        epoch: u64,
+    },
     Genesis {
         // id to identify this specific genesis build
         id: HashValue,
@@ -86,6 +89,12 @@ impl SessionId {
         }
     }
 
+    pub fn dkg_txn(dkg_txn: &DKGTransaction) -> Self {
+        Self::DKGTxn {
+            epoch: dkg_txn.epoch,
+        }
+    }
+
     pub fn void() -> Self {
         Self::Void
     }
@@ -97,7 +106,7 @@ impl SessionId {
     pub fn sender(&self) -> Option<AccountAddress> {
         match self {
             SessionId::Txn { sender, .. } => Some(*sender),
-            SessionId::BlockMeta { .. } | SessionId::Genesis { .. } | SessionId::Void => None,
+            SessionId::BlockMeta { .. } | SessionId::DKGTxn { .. } | SessionId::Genesis { .. } | SessionId::Void => None,
         }
     }
 }
