@@ -19,6 +19,11 @@ jobs:
   release-aptos-node:
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # pin@v3
         with:
           ref: ${{ inputs.branch }}
@@ -26,7 +31,7 @@ jobs:
       - uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984 # pin@v4
 
       - name: Bump aptos-node version
-        uses: aptos-labs/aptos-core/.github/actions/release-aptos-node@main
+        uses: aptos-labs/aptos-core/.github/actions/release-aptos-node@2d1ae23638b5f40a5cf29d921a158a6e978271ed # main
         with:
           release_tag: ${{ inputs.release_tag }}
           aptos_node_cargo_toml: aptos-node/Cargo.toml

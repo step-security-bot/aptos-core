@@ -10,6 +10,9 @@ on:
         type: string
         description: Use this to override the git SHA1, branch name (e.g. devnet) or tag to pull docker images with
 
+permissions:
+  contents: read
+
 jobs:
   test-indexer-grpc-docker-compose:
     runs-on: ubuntu-latest
@@ -23,11 +26,16 @@ jobs:
       IMAGE_TAG: ${{ inputs.GIT_SHA || 'devnet' }} # hardcode to a known good build when not running on workflow_call
 
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # pin@v3
         with:
           ref: ${{ inputs.GIT_SHA || github.event.pull_request.head.sha || github.sha }}
 
-      - uses: aptos-labs/aptos-core/.github/actions/docker-setup@main
+      - uses: aptos-labs/aptos-core/.github/actions/docker-setup@2d1ae23638b5f40a5cf29d921a158a6e978271ed # main
         with:
           GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
@@ -37,7 +45,7 @@ jobs:
           GIT_CREDENTIALS: ${{ secrets.GIT_CREDENTIALS }}
 
       - name: Install grpcurl
-        uses: aptos-labs/aptos-core/.github/actions/install-grpcurl@main
+        uses: aptos-labs/aptos-core/.github/actions/install-grpcurl@2d1ae23638b5f40a5cf29d921a158a6e978271ed # main
 
       - name: Set up and verify indexer GRPC local docker
         shell: bash

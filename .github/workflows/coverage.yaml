@@ -24,10 +24,15 @@ jobs:
     timeout-minutes: 120
     runs-on: high-perf-docker
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # pin@v3
         with:
           fetch-depth: 0 # get all the history because cargo xtest --change-since origin/main requires it.
-      - uses: aptos-labs/aptos-core/.github/actions/rust-setup@main
+      - uses: aptos-labs/aptos-core/.github/actions/rust-setup@2d1ae23638b5f40a5cf29d921a158a6e978271ed # main
       - run: rustup component add llvm-tools-preview
       - uses: taiki-e/install-action@6f1ebcd9e21315fc37d7f7bc851dfcc8356d7da3 # pin@v1.5.6
         with:
@@ -46,10 +51,15 @@ jobs:
     timeout-minutes: 120
     runs-on: high-perf-docker
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # pin@v3
         with:
           fetch-depth: 0 # get all the history because cargo xtest --change-since origin/main requires it.
-      - uses: aptos-labs/aptos-core/.github/actions/rust-setup@main
+      - uses: aptos-labs/aptos-core/.github/actions/rust-setup@2d1ae23638b5f40a5cf29d921a158a6e978271ed # main
       - run: rustup component add llvm-tools-preview
       - uses: taiki-e/install-action@6f1ebcd9e21315fc37d7f7bc851dfcc8356d7da3 # pin@v1.5.6
         with:
@@ -68,6 +78,11 @@ jobs:
     needs: [ rust-unit-coverage, rust-smoke-coverage ]
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # pin@v3
       - uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741 # pin@v3
         with:

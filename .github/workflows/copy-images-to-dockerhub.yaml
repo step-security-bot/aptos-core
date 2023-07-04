@@ -31,9 +31,14 @@ jobs:
     # Run on a machine with more local storage for large docker images
     runs-on: medium-perf-docker-with-local-ssd
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # pin@v3
 
-      - uses: aptos-labs/aptos-core/.github/actions/docker-setup@main
+      - uses: aptos-labs/aptos-core/.github/actions/docker-setup@2d1ae23638b5f40a5cf29d921a158a6e978271ed # main
         with:
           GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
@@ -48,7 +53,7 @@ jobs:
           username: ${{ secrets.ENV_DOCKERHUB_USERNAME }}
           password: ${{ secrets.ENV_DOCKERHUB_PASSWORD }}
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
         with:
           node-version-file: .node-version
 

@@ -17,8 +17,13 @@ jobs:
   check-repo:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: aptos-labs/aptos-core/.github/actions/check-aptos-core@main
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: aptos-labs/aptos-core/.github/actions/check-aptos-core@2d1ae23638b5f40a5cf29d921a158a6e978271ed # main
         with:
           cancel-workflow: ${{ github.event_name == 'schedule' }} # Cancel the workflow if it is scheduled on a fork
 

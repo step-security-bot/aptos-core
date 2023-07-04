@@ -24,10 +24,15 @@ jobs:
     name: "Build Ubuntu 20.04 binary"
     runs-on: ubuntu-20.04
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # pin@v3
         with:
           ref: ${{ github.event.inputs.source_git_ref_override }}
-      - uses: aptos-labs/aptos-core/.github/actions/rust-setup@main
+      - uses: aptos-labs/aptos-core/.github/actions/rust-setup@2d1ae23638b5f40a5cf29d921a158a6e978271ed # main
       - name: Build CLI
         run: scripts/cli/build_cli_release.sh "Ubuntu"
       - name: Upload Binary
@@ -40,10 +45,15 @@ jobs:
     name: "Build Ubuntu 22.04 binary"
     runs-on: ubuntu-22.04
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # pin@v3
         with:
           ref: ${{ github.event.inputs.source_git_ref_override }}
-      - uses: aptos-labs/aptos-core/.github/actions/rust-setup@main
+      - uses: aptos-labs/aptos-core/.github/actions/rust-setup@2d1ae23638b5f40a5cf29d921a158a6e978271ed # main
       - name: Build CLI
         run: scripts/cli/build_cli_release.sh "Ubuntu-22.04"
       - name: Upload Binary
@@ -56,6 +66,11 @@ jobs:
     name: "Build OS X binary"
     runs-on: macos-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # pin@v3
         with:
           ref: ${{ github.event.inputs.source_git_ref_override }}
@@ -71,6 +86,11 @@ jobs:
     name: "Build Windows binary"
     runs-on: windows-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # pin@v3
         with:
           ref: ${{ github.event.inputs.source_git_ref_override }}
@@ -94,6 +114,11 @@ jobs:
       contents: "write"
       pull-requests: "read"
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
       - name: Download prebuilt binaries
         uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741 # pin@v3
         with:

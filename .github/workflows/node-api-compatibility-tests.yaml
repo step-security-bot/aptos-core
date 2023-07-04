@@ -31,6 +31,9 @@ env:
   IMAGE_TAG: ${{ inputs.GIT_SHA || 'devnet' }} # default to "devnet" tag when not running on workflow_call
   GIT_SHA: ${{ inputs.GIT_SHA || github.event.pull_request.head.sha || github.sha }} # default to PR branch sha when not running on workflow_call
 
+permissions:
+  contents: read
+
 jobs:
   # Confirm that the generated client within the TS SDK has been re-generated
   # if there are any changes that would affect it within the PR / commit. If
@@ -41,11 +44,16 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # pin@v3
         with:
           ref: ${{ env.GIT_SHA }}
 
-      - uses: aptos-labs/aptos-core/.github/actions/docker-setup@main
+      - uses: aptos-labs/aptos-core/.github/actions/docker-setup@2d1ae23638b5f40a5cf29d921a158a6e978271ed # main
         with:
           GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}

@@ -1,0 +1,101 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /.github/actions/fullnode-sync
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /.github/ts-tasks
+    schedule:
+      interval: daily
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /aptos-move/move-examples/my_first_dapp/client
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /crates/aptos-faucet/ts-client
+    schedule:
+      interval: daily
+
+  - package-ecosystem: cargo
+    directory: /crates/aptos-protos
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /developer-docs-site
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /ecosystem/indexer-grpc/indexer-grpc-parser
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /ecosystem/node-checker/ts-client
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /ecosystem/typescript/sdk/examples/javascript
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /ecosystem/typescript/sdk/examples/typescript-esm
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /ecosystem/typescript/sdk/examples/typescript
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /ecosystem/typescript/sdk
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: cargo
+    directory: /testsuite/fuzzer/fuzz
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /testsuite/fuzzer/google-oss-fuzz
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /third_party/move/evm/hardhat-examples
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /third_party/move/evm/hardhat-move
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
+    directory: /third_party/move/move-analyzer/editors/code
+    schedule:
+      interval: daily

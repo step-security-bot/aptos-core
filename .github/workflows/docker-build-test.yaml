@@ -87,6 +87,11 @@ jobs:
       contains(github.event.pull_request.body, '#e2e')
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
       - name: Check repository permission for user which triggered workflow
         uses: sushichop/action-repository-permission@13d208f5ae7a6a3fc0e5a7c2502c214983f0241c
         with:
@@ -99,6 +104,11 @@ jobs:
     needs: [permission-check]
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+        with:
+          egress-policy: audit
+
       - name: collect metadata
         run: |
           echo "GIT_SHA: ${GIT_SHA}"
